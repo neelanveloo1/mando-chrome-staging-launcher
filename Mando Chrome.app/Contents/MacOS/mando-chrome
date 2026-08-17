@@ -1,0 +1,11 @@
+#!/bin/bash
+set -u
+
+RESOURCE_DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+LOG_DIR="$HOME/Library/Logs/MandoChrome"
+LOG_FILE="$LOG_DIR/launcher.log"
+
+/bin/mkdir -p "$LOG_DIR"
+/bin/chmod 700 "$LOG_DIR" 2>/dev/null || true
+
+exec "$RESOURCE_DIR/launcher.sh" >>"$LOG_FILE" 2>&1
