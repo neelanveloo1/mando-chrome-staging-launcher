@@ -12,12 +12,13 @@ test('real updater: defer while open, install on SHA change, skip current, rejec
     const key=readFileSync(launcher,'utf8').match(/readonly EXPECTED_MANIFEST_KEY="([^"]+)"/)[1];
     const home=join(root,'home'), fixture=join(root,'fixture'), ext=join(home,'Mando/StagingExtension');
     mkdirSync(fixture,{recursive:true});mkdirSync(ext,{recursive:true});
-    const manifest={manifest_version:3,name:'Mando AI Docs - Staging',version:'9.9.9',key};
+    const manifest={manifest_version:3,name:'Mando AI Docs - Staging',version:'9.9.9',key,background:{service_worker:'worker.js',type:'module'}};
+    writeFileSync(join(fixture,'worker.js'),'// fixture background worker\n');
     writeFileSync(join(fixture,'manifest.json'),JSON.stringify(manifest));
     writeFileSync(join(ext,'manifest.json'),JSON.stringify({...manifest,version:'9.9.8'}));
     const marker=join(ext,'mando-chrome-artifact.json');
     writeFileSync(marker,JSON.stringify({artifact_sha:'a'.repeat(40)}));
-    const zip=join(root,'fixture.zip');execFileSync('/usr/bin/zip',['-q',zip,'manifest.json'],{cwd:fixture});
+    const zip=join(root,'fixture.zip');execFileSync('/usr/bin/zip',['-q',zip,'manifest.json','worker.js'],{cwd:fixture});
     const sha=execFileSync('git',['hash-object',zip],{encoding:'utf8'}).trim();
     const metadata=join(root,'metadata.json');
     writeFileSync(metadata,JSON.stringify({sha,size:readFileSync(zip).length}));
@@ -29,6 +30,10 @@ test('real updater: defer while open, install on SHA change, skip current, rejec
     result=run('0');assert.equal(result.status,0,result.stdout+result.stderr);
     assert.equal(JSON.parse(readFileSync(marker)).artifact_sha,sha);
     assert.equal(JSON.parse(readFileSync(join(ext,'manifest.json'))).version,'9.9.9');
+    const installedManifest=JSON.parse(readFileSync(join(ext,'manifest.json')));
+    assert.equal(installedManifest.background.service_worker,'mando-health-entry-'+sha+'-v3.js');
+    assert.equal(readFileSync(join(ext,'worker.js'),'utf8'),'// fixture background worker\n');
+    assert.ok(installedManifest.permissions.includes('nativeMessaging'));
     assert.ok(existsSync(join(home,'Mando/StagingExtension.previous/manifest.json')));
     result=run('0',{TEST_FORBID_DOWNLOAD:'1'});assert.equal(result.status,0,result.stdout+result.stderr);
     writeFileSync(metadata,JSON.stringify({sha:'b'.repeat(40),size:readFileSync(zip).length}));

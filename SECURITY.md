@@ -1,33 +1,20 @@
 # Security
+Never publish GitHub tokens, Keychain exports, Chrome profile data, private staging contents, or logs containing credentials.
 
-Do not include GitHub tokens, Keychain exports, Chrome profile data, staging
-extension contents, or launcher logs in issues or pull requests.
+## Live status trust boundary
+GitHub authorization is enforced on every artifact fetch. Credentials stay on the Mac and are passed to curl via standard input, never to the dashboard or process arguments.
 
-The public launcher contains the private repository name and expected artifact
-path, but GitHub authentication and repository authorization are still required
-to read the artifact.
+The status adapter is limited to https://mando-chrome-status.vercel.app. Its background listener checks the sender's extension ID, top-level frame, exact origin, request type, and nonce. It exposes no generic browser, shell, URL-fetch, filesystem or token API.
 
-For a suspected credential exposure, revoke the affected GitHub token first and
-then report the incident through Mando's internal security process.
+The native host accepts only the staging extension ID and a bounded, length-prefixed JSON message containing exactly {"action":"status"}. It runs one fixed local command that checks one fixed GitHub artifact. It returns check state, latest SHA, and timestamp only. It cannot install, execute user-supplied commands, or disclose credentials.
 
-## Dashboard trust boundary
+The running worker's original artifact SHA is baked into the adapter at install time after upstream ZIP verification. It cannot turn green merely because a newer file was downloaded while an old worker is running. The page expires checks after 45 seconds. The frontend and installed adapter remain trusted software; this is not tamper-resistant remote attestation or a test of Mando recording/backend behavior.
 
-GitHub credentials stay on each Mac. The cloud receives only the report fields
-allowlisted in `lib/status.mjs`. Vercel's private Blob credential is server-only.
-Reports are self-reported by the local monitor, not independent remote attestation.
+The locally added adapter includes nativeMessaging permission and a dashboard-only content script; the installer registers its read-only host. These additions are transparent in the installed manifest and public source. The upstream extension remains private.
 
-The Mac creates a random 256-bit write token in a mode-600 file inside its
-mode-700 Application Support directory. The read capability is SHA-256(write
-token); its hash identifies the private Blob record. A read capability cannot
-overwrite the corresponding device report. Treat either capability as private.
-The shared landing page has no access to a device without its read capability.
+## Data and retirement of 1.1.0 reports
+Version 1.2.0 does not upload status reports to cloud storage or use device tokens. The hosting service serves the page and may keep ordinary request metadata. The retired status API returns HTTP 410. Historical 1.1.0 reports remain private until the hosting account owner removes them; uninstalling does not delete those historical reports.
 
-The hosting account owner can access stored reports. The latest report replaces
-the previous report; reports persist after uninstall until the hosting owner
-removes them. Vercel may retain infrastructure request metadata under its policy.
-"Forget this Mac" only clears this browser's saved link; it does not stop the
-monitor, revoke links, or delete the server report. To stop reporting, uninstall.
+The uninstaller removes native-host registration and the background updater, leaving extension data and backups for recovery. Credentials previously used for GitHub remain in the user's own GitHub CLI/Keychain.
 
-This is an initial team-scale service: public device enrollment is unrestricted.
-Use Vercel firewall/rate limits and cost alerts before exposing it broadly.
-No claim is made that SHA equality proves live extension or backend functionality.
+Report security concerns through Mando's internal security process. Revoke an exposed GitHub token immediately.

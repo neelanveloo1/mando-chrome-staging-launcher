@@ -24,6 +24,7 @@ readonly VERIFY_MESSAGE="Mando Chrome could not verify the latest build. Existin
 readonly DOWNLOAD_MESSAGE="GitHub did not finish the staging download after several automatic retries. Existing extension files were left untouched. Close Chrome and try Mando Chrome again in a minute."
 readonly CHROME_BUNDLE_ID="com.google.Chrome"
 readonly MINIMUM_CHROME_MAJOR=116
+readonly RESOURCE_DIR_LAUNCHER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WORK_ROOT=""
 LOCK_HELD=0
@@ -301,6 +302,11 @@ compute_git_blob_sha() {
   } | /usr/bin/shasum -a 1 | /usr/bin/awk '{print $1}'
 }
 
+bridge_is_current() {
+  local marker="$EXTENSION_DIR/mando-health-bridge.json"
+  [[ -f "$marker" ]] && [[ "$(plist_extract version "$marker" || true)" == "3" ]] && [[ "$(plist_extract artifactSha "$marker" || true)" == "$(read_installed_sha || true)" ]]
+}
+
 read_installed_sha() {
   local metadata="$EXTENSION_DIR/$METADATA_FILENAME"
   if [[ ! -f "$metadata" ]]; then
@@ -526,7 +532,7 @@ main() {
 
   log "Installed SHA: ${installed_sha:-none}; required SHA: $remote_sha; Chrome running: $chrome_was_running"
 
-  if [[ "$installed_sha" == "$remote_sha" ]]; then
+  if [[ "$installed_sha" == "$remote_sha" ]] && bridge_is_current; then
     open_chrome
     exit 0
   fi
@@ -578,6 +584,11 @@ main() {
   fi
 
   write_artifact_metadata "$candidate" "$remote_sha"
+
+  # Add the adapter only to the verified candidate, never the running extension.
+  if ! /usr/bin/osascript -l JavaScript "$RESOURCE_DIR_LAUNCHER/prepare-bridge.js" "$candidate" "$RESOURCE_DIR_LAUNCHER" "$remote_sha"; then
+    fail_update_and_open_chrome "Live status setup failed" "$VERIFY_MESSAGE"
+  fi
 
   if is_chrome_running; then
     show_alert "Mando Chrome update required" "$STALE_MESSAGE"

@@ -1,190 +1,67 @@
-# Mando Chrome Staging Launcher
+# Mando Chrome
+[Open the live dashboard in Chrome](https://mando-chrome-status.vercel.app/) · [Download Mac installer](https://github.com/neelanveloo1/mando-chrome-staging-launcher/releases/latest/download/Mando-Chrome-Team-Installer.zip)
 
-Mando Chrome is a macOS launcher that keeps the private Mando staging Chrome
-extension current before opening regular Google Chrome.
+## Everyday use
+1. Open Chrome using the **gold Mando icon** in your Dock.
+2. Visit **https://mando-chrome-status.vercel.app/** in that Chrome profile.
+3. **Green:** the running staging build matches GitHub and Chrome meets the minimum version.
+4. **Red:** follow the short explanation. For an outdated build, quit Chrome with Command-Q and reopen using the gold icon.
 
-[Live status dashboard](https://mando-chrome-status.vercel.app) ·
-[Download the Mac installer](https://github.com/neelanveloo1/mando-chrome-staging-launcher/releases/latest/download/Mando-Chrome-Team-Installer.zip)
+The page shows the running extension version, whether its build SHA matches GitHub, and this browser's full Chrome version. It checks on page load, every 15 seconds while visible, and when you click **Check now**. No pairing link is needed.
 
-Version 1.1.0 also installs a per-user background monitor. It checks GitHub every
-two minutes while you are logged in and the Mac is awake, and installs new
-staging builds when Chrome is closed. It never interrupts your browser session.
+Open the dashboard in **Google Chrome**, not another browser or an embedded app browser. It checks the current Chrome profile, not a different profile or another Mac. It verifies running-build identity and compatibility, not workflow recording or backend health.
 
-The launcher source is public, but the staging artifact is not. Every update
-request still requires a GitHub account with read access to `MandoHQ/app`.
-Publishing this launcher does not grant access to that repository or artifact.
+## First-time setup
+Requires macOS 12+, Google Chrome 116+, and your own read access to the private repository `MandoHQ/app`.
 
-## Requirements
+1. Download and extract the installer ZIP. Open **Install Mando Chrome.command**.
+2. Install [GitHub CLI](https://cli.github.com) if needed (`brew install gh` with Homebrew), then run `gh auth login -h github.com`. Authorize organization SSO if required.
+3. Quit Chrome normally and open **Mando Chrome** from your user Applications folder.
+4. Once per profile, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select `~/Mando/StagingExtension`.
+5. Drag Mando Chrome from `~/Applications` into your Dock.
+6. Open the dashboard in Chrome. The included **Open Mando Status.command** opens it in Chrome for you.
 
-- macOS 12 or newer
-- Google Chrome 116 or newer
-- GitHub CLI authenticated with an account that can read `MandoHQ/app`
-- Permission to load an unpacked extension in Chrome
+If Chrome asks you to approve new permissions, review and approve them in its extensions page. Company policy may block unpacked extensions or native messaging; an administrator must allow them. The app is locally ad-hoc signed during installation, not Apple-notarized.
 
-## Install
+## Upgrading from 1.1.0
+Install the **1.2.0** package, quit Chrome with Command-Q, then open Mando Chrome once. This installs the live-status adapter even if the staging ZIP's SHA has not changed. Refresh the dashboard. Old private status links and cloud device reports are no longer used.
 
-1. Download and extract the ZIP from the latest GitHub release.
-2. Double-click `Install Mando Chrome.command`.
-3. If macOS blocks the command because it was downloaded from the internet,
-   Control-click it, choose **Open**, and confirm once.
-4. Close Chrome normally.
-5. Open `Mando Chrome` from `~/Applications`.
-6. The first time only, open `chrome://extensions`, enable Developer mode,
-   click **Load unpacked**, and select `~/Mando/StagingExtension`.
-7. Drag Mando Chrome from `~/Applications` into the Dock if desired.
-8. Open `~/Applications/Open Mando Status.command` to connect the dashboard to
-   this Mac. Bookmark the page in that browser; the connection is remembered locally.
+## How the live check works
+The launcher validates the private upstream ZIP's size, Git blob SHA, archive paths, manifest name, and stable extension key. Only then, in an isolated candidate directory, it adds a small status adapter. The original upstream files remain unchanged except for manifest additions. The adapter adds a dashboard-only content script, native-messaging permission, and a distinct background entry point per artifact SHA/adapter revision.
 
-This does not silently install an extension into Chrome: **Load unpacked** is a
-one-time action for each profile. Each teammate needs their own GitHub access.
+A message from the exact dashboard origin reaches the running staging service worker. That worker responds with its manifest version and **build SHA baked into its code**, not a marker read from disk. It also reports this session's Chrome version. A read-only native host checks the latest artifact SHA directly against GitHub using your local credentials. The returned status goes directly back to that browser page, not through cloud storage.
 
-## GitHub authentication
+Distinct worker-entry URLs avoid reusing a stale Chrome MV3 background registration across builds. A missing response, failed GitHub check, incompatible Chrome, expired result, or mismatched SHA can never produce green.
 
-Authenticate GitHub CLI before opening Mando Chrome:
+The adapter is maintained by this launcher; it is not part of the upstream staging ZIP. We do not publish the private extension artifact. Source access to this launcher does not grant access to Mando's private repository.
 
-```bash
-gh auth login -h github.com
-gh auth status -h github.com
-```
+## Updates and safety
+- The launcher checks before opening Chrome. A per-user LaunchAgent also checks/updates every two minutes while Chrome is closed.
+- Extension files are never replaced while Chrome is running. No background job quits Chrome.
+- A verified candidate is installed transactionally, retaining the prior version.
+- Chrome updates itself normally. The launcher checks the minimum supported version; it does not update, replace or pin Chrome.
+- Staging updates automatically; install a new launcher release for launcher changes.
+- A live check uses a 10-second GitHub request timeout and a five-second per-worker cache to avoid duplicate simultaneous requests.
 
-If `gh` is missing, install it from [GitHub CLI](https://cli.github.com), or use
-`brew install gh` if you already have Homebrew. Authorize your organization's
-SSO if GitHub requires it. Chrome itself must already be installed.
+## Logs and uninstall
+Logs: `~/Library/Logs/MandoChrome/launcher.log` and `monitor.log`.
+Run `./uninstall-mando-chrome.sh` to stop the LaunchAgent and remove the launcher, status shortcut and native-host registration. It leaves extension files, backups and logs in place. Remove the extension yourself in Chrome if desired.
 
-Finder-launched apps do not inherit Terminal's Homebrew `PATH`, so the launcher
-looks for GitHub CLI at the standard absolute locations. It reads the existing
-credential locally with `gh auth token` and sends it to the GitHub API through
-standard input rather than exposing it in process arguments.
-
-An optional fine-grained, read-only token can be stored in macOS Keychain with:
-
-```bash
-./store-github-token-in-keychain.sh
-```
-
-## Update behavior
-
-On every launch, Mando Chrome:
-
-1. Verifies regular Google Chrome is version 116 or newer.
-2. Reads the current `extension/dist-staging.zip` metadata from the `develop`
-   branch of `MandoHQ/app`.
-3. Compares GitHub's blob SHA with the locally installed artifact SHA.
-4. When Chrome is closed and the SHA differs, downloads and validates the ZIP.
-5. Installs it transactionally while retaining the previous version.
-6. Opens regular Google Chrome without flags or a separate profile.
-
-The launcher never changes extension files while Chrome is running. If an
-update is required, **quit Chrome normally with Command-Q** (closing its windows
-may leave it running). The monitor will install the update on the next check;
-open Mando Chrome for an immediate check and relaunch. No Chrome restart is forced.
-
-The launcher updates the extension, not itself. Install a new launcher release
-to receive future launcher/monitor changes. Chrome continues using its own normal
-updates; no Chrome version is pinned or modified.
-
-The download is checked for expected size, Git blob SHA, ZIP integrity, unsafe
-paths, symbolic links, Manifest V3, the staging extension name, and its stable
-public key before installation.
-
-## Live status
-
-The website receives a small report from your Mac. A website alone cannot inspect
-your local Chrome installation or authenticate to Mando's private repository.
-
-- Green: recent successful GitHub check, matching artifact SHAs, and the staging
-  extension is registered in Chrome's last-used saved profile.
-- Amber: an update is waiting or Chrome setup is required. A lagging saved
-  service-worker version alone does not mean the installed build is out of date.
-- Red: GitHub authentication, network, compatibility, update, or status service error.
-- Offline/unconfirmed: no new report for more than five minutes, including sleep.
-
-This verifies downloaded-build freshness and saved registration, **not** live
-extension execution, recording, permissions, or Mando backend health. Saved
-Chrome settings can lag; confirm the live version in `chrome://extensions`.
-
-Each Mac generates a private write token locally. The status command opens a
-separate read-only capability link; anyone with that private link can view its
-limited version/status report. The URL fragment is removed after the browser
-stores it locally. Don't share the private link or device-token file.
-
-Only versions, artifact SHAs, check result/timestamps, Chrome running state and
-saved extension registration flags are sent to private Vercel Blob storage.
-No GitHub tokens, Chrome profile names, tabs, cookies, extension storage or raw
-logs are sent. See [SECURITY.md](SECURITY.md).
-
-## Chrome profiles
-
-Chrome retains the unpacked extension across ordinary browser updates and
-restarts. Loading it once is still required for each new Chrome profile or new
-Mac because the launcher does not modify Chrome profile data.
-
-Company-managed Chrome policies can block Developer mode, unpacked extensions,
-or requested extension permissions. An administrator must allow the extension
-in that environment.
-
-## Logs
-
-Launcher activity is recorded at:
-
-```text
-~/Library/Logs/MandoChrome/launcher.log
-~/Library/Logs/MandoChrome/monitor.log
-```
-
-Local latest report: `~/Library/Application Support/MandoChrome/status.json`.
-Monitor configuration: `~/Library/LaunchAgents/work.mando.chrome.monitor.plist`.
-For an immediate background check without opening Chrome:
-
-```bash
-launchctl kickstart gui/$(id -u)/work.mando.chrome.monitor
-```
-
-## Uninstall
-
-Run:
-
-```bash
-./uninstall-mando-chrome.sh
-```
-
-The uninstaller stops/removes the monitor and removes the launcher and status
-shortcut. It intentionally leaves downloaded extension files, prior-version
-backup, logs and local status credentials untouched. It does not remove the
-Chrome extension registration; remove that yourself in `chrome://extensions`.
-
-## Security notes
-
-- No GitHub credential is included in this repository or release.
-- The launcher does not quit Chrome, modify Chrome itself, or edit browser data.
-- The app is ad-hoc signed during installation. It is not Apple-notarized.
-- Repository access remains enforced by GitHub on every staging update check.
+The retired 1.1.0 service's historical reports may remain in private hosting storage; the new monitor no longer sends them and its old endpoint returns HTTP 410. Old local status credentials are unused.
 
 ## Development
-
-Run the static package checks on macOS:
+On macOS:
 
 ```bash
-./tests/test-package.sh
 npm ci
 npm test
+bash tests/test-package.sh
 npm run build
 node scripts/package.mjs
 ```
 
-The package script produces `work/Mando-Chrome-Team-Installer.zip` containing only
-the Mac installer (no staging artifact, credentials, node_modules or web service).
+The package script produces `work/Mando-Chrome-Team-Installer.zip`. It excludes private staging contents, credentials, logs, node_modules, and the web deployment.
 
-## Hosting your own dashboard on Vercel
+The public web frontend is hosted on Vercel. No GitHub or device credential is needed on the server for 1.2.0. A fork using another dashboard origin must update the origin in both adapter files, prepare-bridge.js, and Open Mando Status.command, then rebuild its installer. Native host access is restricted to the staging extension ID and a fixed read-only status command.
 
-Import this repository into Vercel, use Node 22 and the checked-in `vercel.json`.
-Create a **private** Vercel Blob store and connect it to the project; Vercel adds
-`BLOB_READ_WRITE_TOKEN` server-side. Never put a GitHub token on Vercel.
-Change the status URL in `monitor.sh` and `Open Mando Status.command` before
-packaging your own installer. The `/api/status` endpoint accepts small,
-allowlisted reports and retains one current JSON report per device.
-
-Configure Vercel spending alerts and abuse/rate-limit rules for your usage before
-large-scale distribution. This initial deployment is a team utility, not an
-authenticated multi-tenant monitoring service. Anyone can generate a new device
-identity; existing private device reports remain capability-protected.
+See [SECURITY.md](SECURITY.md) and Chrome's [native messaging documentation](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging).

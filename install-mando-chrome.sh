@@ -37,7 +37,7 @@ trap cleanup EXIT
 
 /bin/rm -rf -- "$TEMP_APP"
 /usr/bin/ditto "$SOURCE_APP" "$TEMP_APP"
-/bin/chmod +x "$TEMP_APP/Contents/MacOS/mando-chrome" "$TEMP_APP/Contents/Resources/launcher.sh"
+/bin/chmod +x "$TEMP_APP/Contents/MacOS/mando-chrome" "$TEMP_APP/Contents/Resources/launcher.sh" "$TEMP_APP/Contents/Resources/native-host.sh"
 
 create_icns() {
   [[ -f "$ICON_SOURCE" ]] || return 0
@@ -73,6 +73,10 @@ fi
 /bin/rm -rf -- "$DEST_APP"
 /bin/mv -- "$TEMP_APP" "$DEST_APP"
 TEMP_APP=""
+
+NATIVE_HOST_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+/bin/mkdir -p "$NATIVE_HOST_DIR"
+/usr/bin/osascript -l JavaScript "$SCRIPT_DIR/scripts/install-native-host.js" "$NATIVE_HOST_DIR/work.mando.chrome.status.json"
 
 # Install the per-user monitor: no administrator privileges or browser restart.
 MONITOR_PLIST="$HOME/Library/LaunchAgents/work.mando.chrome.monitor.plist"
@@ -110,7 +114,7 @@ fi
 /bin/echo "2. Open $DEST_APP."
 /bin/echo "3. In chrome://extensions, load unpacked from $HOME/Mando/StagingExtension once."
 /bin/echo "4. Drag Mando Chrome from $DEST_DIR into the Dock."
-/bin/echo "5. Open $DEST_DIR/Open Mando Status.command to view your Mac's live status."
-/bin/echo "The background monitor checks GitHub every two minutes and updates while Chrome is closed."
+/bin/echo "5. In Chrome, visit https://mando-chrome-status.vercel.app/ for live red/green status."
+/bin/echo "The background monitor updates staging while Chrome is closed."
 /bin/echo
 /usr/bin/open -R "$DEST_APP" >/dev/null 2>&1 || true
