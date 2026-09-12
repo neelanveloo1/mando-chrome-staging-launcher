@@ -1,9 +1,72 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mando · Live staging check</title><link rel="stylesheet" href="/style.css"></head>
-<body><main><nav><span class="brand"><span>◎</span> mando</span><a href="https://github.com/neelanveloo1/mando-chrome-staging-launcher">Help & installation ↗</a></nav>
-<header><h1>Is my staging up to date?</h1><p>A live check of the extension running in this Chrome window.</p></header>
-<section id="status" class="panel neutral" aria-live="polite"><span id="badge">CHECKING</span><h2 id="title">Checking Chrome and GitHub…</h2><p id="detail">Waiting for the staging extension to reply.</p><div class="status-bar"></div><div class="controls"><span id="checked">Checking now</span><button id="refresh">Check now ↻</button></div></section>
-<section class="metrics"><article><span>RUNNING STAGING</span><strong id="version">—</strong><p>Read from the live extension</p></article><article><span>LATEST ON GITHUB</span><strong id="match">—</strong><p id="latest">Checked directly from your Mac</p></article><article><span>THIS CHROME</span><strong id="chrome">—</strong><p id="chromeNote">Version of this browser session</p></article></section>
-<p class="instruction">Keep using the <b>gold Mando icon</b> to open Chrome. If this page turns red because an update is available, quit Chrome and open it using that icon again.</p>
-<details><summary>Technical details</summary><dl><dt>Running build</dt><dd id="runningSha">—</dd><dt>Latest GitHub build</dt><dd id="latestSha">—</dd></dl><p>This checks the running extension’s build and Chrome compatibility, not recording features or Mando backend health. GitHub credentials stay on your Mac. Chrome updates itself normally.</p></details>
-<footer><span>Live check every 15 seconds while this page is visible.</span><a href="https://github.com/neelanveloo1/mando-chrome-staging-launcher/releases/latest/download/Mando-Chrome-Team-Installer.zip">Download Mac installer</a></footer></main><script type="module" src="/app.mjs"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mando · Live staging check</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <nav>
+        <span class="brand"><span>◎</span> mando</span
+        ><a href="https://github.com/neelanveloo1/mando-chrome-staging-launcher"
+          >Help & installation ↗</a
+        >
+      </nav>
+      <header>
+        <h1>Is my staging up to date?</h1>
+        <p>A live check of the extension running in this Chrome window.</p>
+      </header>
+      <section id="status" class="panel neutral" aria-live="polite">
+        <span id="badge">CHECKING</span>
+        <h2 id="title">Checking Chrome and GitHub…</h2>
+        <p id="detail">Waiting for the staging extension to reply.</p>
+        <div class="status-bar"></div>
+        <div class="controls">
+          <span id="checked">Checking now</span><button id="refresh">Check now ↻</button>
+        </div>
+      </section>
+      <section class="metrics">
+        <article>
+          <span>RUNNING STAGING</span><strong id="version">—</strong>
+          <p>Read from the live extension</p>
+        </article>
+        <article>
+          <span>LATEST ON GITHUB</span><strong id="match">—</strong>
+          <p id="latest">Checked directly from your Mac</p>
+        </article>
+        <article>
+          <span>THIS CHROME</span><strong id="chrome">—</strong>
+          <p id="chromeNote">Version of this browser session</p>
+        </article>
+      </section>
+      <p class="instruction">
+        Keep using the <b>gold Mando icon</b> to open Chrome. If this page turns red because an
+        update is available, quit Chrome and open it using that icon again.
+      </p>
+      <details>
+        <summary>Technical details</summary>
+        <dl>
+          <dt>Running build</dt>
+          <dd id="runningSha">—</dd>
+          <dt>Latest GitHub build</dt>
+          <dd id="latestSha">—</dd>
+        </dl>
+        <p>
+          This checks the running extension’s build and Chrome compatibility, not recording features
+          or Mando backend health. GitHub credentials stay on your Mac. Chrome updates itself
+          normally.
+        </p>
+      </details>
+      <footer>
+        <span>Live check every 15 seconds while this page is visible.</span
+        ><a
+          href="https://github.com/neelanveloo1/mando-chrome-staging-launcher/releases/latest/download/Mando-Chrome-Team-Installer.zip"
+          >Download Mac installer</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="/app.mjs"></script>
+  </body>
+</html>

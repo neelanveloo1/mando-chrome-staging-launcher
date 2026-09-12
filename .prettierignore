@@ -1,0 +1,11 @@
+node_modules/
+dist/
+work/
+.vercel/
+package-lock.json
+*.png
+*.zip
+*.plist
+*.sh
+*.command
+Mando Chrome.app/Contents/MacOS/

@@ -304,7 +304,7 @@ compute_git_blob_sha() {
 
 bridge_is_current() {
   local marker="$EXTENSION_DIR/mando-health-bridge.json"
-  [[ -f "$marker" ]] && [[ "$(plist_extract version "$marker" || true)" == "3" ]] && [[ "$(plist_extract artifactSha "$marker" || true)" == "$(read_installed_sha || true)" ]]
+  [[ -f "$marker" ]] && [[ "$(plist_extract version "$marker" || true)" == "4" ]] && [[ "$(plist_extract artifactSha "$marker" || true)" == "$(read_installed_sha || true)" ]]
 }
 
 read_installed_sha() {

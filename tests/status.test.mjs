@@ -1,6 +1,41 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {assess} from '../web/status.mjs';
-const now=Date.now(),fresh={protocol:2,checkedAt:new Date(now).toISOString(),check:'ok',latestSha:'a'.repeat(40),runningSha:'a'.repeat(40),runningVersion:'1.86.0',chromeVersion:'152.0.7977.84'};
-test('green requires live running SHA, current GitHub check and compatible Chrome',()=>assert.equal(assess(fresh,now).tone,'good'));
-test('installed files or saved registration can never substitute for live response',()=>{assert.equal(assess({...fresh,protocol:1},now).tone,'bad');assert.equal(assess({...fresh,runningSha:null,installedSha:fresh.latestSha},now).tone,'bad');});
-test('outdated running build is red even when installed files are current',()=>{assert.equal(assess({...fresh,runningSha:'b'.repeat(40),installedSha:fresh.latestSha},now).title,'Update needed');});
-test('network, auth, missing data, unsupported Chrome, offline and expired checks cannot be green',()=>{for(const delta of [{check:'github_error'},{check:'auth_error'},{latestSha:null},{chromeVersion:'115.0.0'},{chromeVersion:null},{checkedAt:'bad'},{checkedAt:new Date(now-46000).toISOString()}])assert.equal(assess({...fresh,...delta},now).tone,'bad');assert.equal(assess(null,now).tone,'bad');});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { assess } from '../web/status.mjs';
+const now = Date.now(),
+  fresh = {
+    protocol: 2,
+    checkedAt: new Date(now).toISOString(),
+    check: 'ok',
+    latestSha: 'a'.repeat(40),
+    runningSha: 'a'.repeat(40),
+    runningVersion: '1.86.0',
+    chromeVersion: '152.0.7977.84',
+  };
+test('green requires live running SHA, current GitHub check and compatible Chrome', () =>
+  assert.equal(assess(fresh, now).tone, 'good'));
+test('installed files or saved registration can never substitute for live response', () => {
+  assert.equal(assess({ ...fresh, protocol: 1 }, now).tone, 'bad');
+  assert.equal(
+    assess({ ...fresh, runningSha: null, installedSha: fresh.latestSha }, now).tone,
+    'bad',
+  );
+});
+test('outdated running build is red even when installed files are current', () => {
+  assert.equal(
+    assess({ ...fresh, runningSha: 'b'.repeat(40), installedSha: fresh.latestSha }, now).title,
+    'Update needed',
+  );
+});
+test('network, auth, missing data, unsupported Chrome, offline and expired checks cannot be green', () => {
+  for (const delta of [
+    { check: 'github_error' },
+    { check: 'auth_error' },
+    { latestSha: null },
+    { chromeVersion: '115.0.0' },
+    { chromeVersion: null },
+    { checkedAt: 'bad' },
+    { checkedAt: new Date(now - 46000).toISOString() },
+  ])
+    assert.equal(assess({ ...fresh, ...delta }, now).tone, 'bad');
+  assert.equal(assess(null, now).tone, 'bad');
+});

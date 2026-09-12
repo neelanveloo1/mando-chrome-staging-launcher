@@ -1,7 +1,9 @@
 # Security
+
 Never publish GitHub tokens, Keychain exports, Chrome profile data, private staging contents, or logs containing credentials.
 
 ## Live status trust boundary
+
 GitHub authorization is enforced on every artifact fetch. Credentials stay on the Mac and are passed to curl via standard input, never to the dashboard or process arguments.
 
 The status adapter is limited to https://mando-chrome-status.vercel.app. Its background listener checks the sender's extension ID, top-level frame, exact origin, request type, and nonce. It exposes no generic browser, shell, URL-fetch, filesystem or token API.
@@ -13,6 +15,7 @@ The running worker's original artifact SHA is baked into the adapter at install 
 The locally added adapter includes nativeMessaging permission and a dashboard-only content script; the installer registers its read-only host. These additions are transparent in the installed manifest and public source. The upstream extension remains private.
 
 ## Data and retirement of 1.1.0 reports
+
 Version 1.2.0 does not upload status reports to cloud storage or use device tokens. The hosting service serves the page and may keep ordinary request metadata. The retired status API returns HTTP 410. Historical 1.1.0 reports remain private until the hosting account owner removes them; uninstalling does not delete those historical reports.
 
 The uninstaller removes native-host registration and the background updater, leaving extension data and backups for recovery. Credentials previously used for GitHub remain in the user's own GitHub CLI/Keychain.

@@ -1,5 +1,5 @@
 {
-  "package_version": "1.2.0",
+  "package_version": "1.2.1",
   "generated_at": "2026-09-12",
   "repository": "MandoHQ/app",
   "branch": "develop",
@@ -12,5 +12,5 @@
   "network_retry": "Retry transient GitHub download failures four times before preserving the existing extension and reporting failure.",
   "chrome_compatibility": "Require regular Google Chrome 116 or newer before checking or launching, matching runtime.getContexts and sidePanel.open availability.",
   "installer_signing": "Clean extracted macOS metadata, then sign and verify the temporary app before replacing the installed copy.",
-  "status_monitor": "Read-only native host and dashboard-only adapter verify the running worker SHA directly against GitHub every 15 seconds. No cloud reports or private pairing links. Background updates only while Chrome is closed. Adapter revision 3 uses unique worker entry URLs to avoid stale registrations."
+  "status_monitor": "Read-only native host and dashboard-only adapter verify the running worker SHA directly against GitHub every 15 seconds. No cloud reports or private pairing links. Background updates only while Chrome is closed. Adapter revision 4 isolates each request lifecycle and uses unique worker entry URLs."
 }

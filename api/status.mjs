@@ -1,1 +1,7 @@
-export default function handler(req,res){res.setHeader('Cache-Control','no-store');return res.status(410).json({error:'Cloud device reports have been retired. Install Mando Chrome 1.2.0 and open the dashboard in Chrome for a direct live check.'});}
+export default function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(410).json({
+    error:
+      'Cloud device reports have been retired. Install Mando Chrome 1.2.0 and open the dashboard in Chrome for a direct live check.',
+  });
+}
