@@ -23,13 +23,15 @@ nav {
   border-bottom: 1px solid #eee;
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 28px;
   font-weight: 650;
 }
-.brand span {
-  color: #b68132;
-  font-size: 40px;
-  vertical-align: middle;
+.brand img {
+  display: block;
+  flex-shrink: 0;
 }
 a {
   color: #555;
