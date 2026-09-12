@@ -1,0 +1,11 @@
+import {mkdtemp,cp,mkdir} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {join,resolve} from 'node:path';
+await mkdir('work',{recursive:true});const tmp=await mkdtemp('work/package-');
+const root=join(tmp,'Mando-Chrome-Installer');await mkdir(root);
+for(const file of ['Mando Chrome.app','Install Mando Chrome.command','Open Mando Status.command','install-mando-chrome.sh','store-github-token-in-keychain.sh','uninstall-mando-chrome.sh','README.md','SECURITY.md','BUILD_INFO.json']) await cp(file,join(root,file),{recursive:true});
+await mkdir(join(root,'scripts'));await cp('scripts/install-monitor.js',join(root,'scripts/install-monitor.js'));
+await mkdir(join(root,'tests'));for(const f of ['test-launcher.sh','test-package.sh'])await cp('tests/'+f,join(root,'tests/'+f));
+const output=resolve(process.argv[2]||'work/Mando-Chrome-Team-Installer.zip');
+execFileSync('/usr/bin/zip',['-qr',output,'Mando-Chrome-Installer'],{cwd:tmp,env:{...process.env,COPYFILE_DISABLE:'1'}});
+console.log(output);

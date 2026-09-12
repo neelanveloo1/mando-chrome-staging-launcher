@@ -8,6 +8,8 @@ LAUNCHER="$ROOT/Mando Chrome.app/Contents/Resources/launcher.sh"
 /bin/bash -n "$ROOT/install-mando-chrome.sh"
 /bin/bash -n "$ROOT/store-github-token-in-keychain.sh"
 /bin/bash -n "$ROOT/uninstall-mando-chrome.sh"
+/bin/bash -n "$ROOT/Mando Chrome.app/Contents/Resources/monitor.sh"
+/bin/bash -n "$ROOT/Open Mando Status.command"
 
 if /usr/bin/grep -En '(^|[^[:alnum:]_])(kill|killall|pkill)([^[:alnum:]_]|$)' "$LAUNCHER"; then
   /bin/echo "Forbidden process-termination command found." >&2

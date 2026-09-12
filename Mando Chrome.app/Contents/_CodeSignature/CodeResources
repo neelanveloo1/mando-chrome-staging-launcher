@@ -8,9 +8,17 @@
 		<data>
 		H4EE1bCC1ov+WNQLX6MOLXbYp+A=
 		</data>
+		<key>Resources/health.js</key>
+		<data>
+		iXtejadivQ2hHOBvblEO+CTxgog=
+		</data>
 		<key>Resources/launcher.sh</key>
 		<data>
-		bKX04mmRgRzQzP51LQcCb7rlT4Q=
+		PV4mfZg98MaL7XwIcrQqrgrJS9Y=
+		</data>
+		<key>Resources/monitor.sh</key>
+		<data>
+		5CS9m9Vd6TG1S/zdXgGnN0QtmS8=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -22,11 +30,25 @@
 			NXYQmUAqSi/2VUq63eh29hfsZjsgPD3QufAzqRZCh74=
 			</data>
 		</dict>
+		<key>Resources/health.js</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			dCCO4sGUsGTK/VceuzduqgSjPVqqUf0RC3nMVqc8un4=
+			</data>
+		</dict>
 		<key>Resources/launcher.sh</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2Tld5D/WDDUr7ml6eR+DU3fplY3WAhmleSyriMTr/yk=
+			J2n5XOt7qGsfW0FQxI8nwMGuNXFVP7RBDc8YM03N9eQ=
+			</data>
+		</dict>
+		<key>Resources/monitor.sh</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			SLurefxe1fsvRLJ3/5fqi7o58TB29I5dCxPLojPIb6Q=
 			</data>
 		</dict>
 	</dict>

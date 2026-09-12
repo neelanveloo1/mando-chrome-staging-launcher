@@ -39,7 +39,7 @@ show_alert() {
   local title="$1"
   local message="$2"
   log "ALERT: $title: $message"
-  if [[ "${MANDO_STAGING_NO_UI:-0}" == "1" ]]; then
+  if [[ "${MANDO_STAGING_NO_UI:-0}" == "1" || "${MANDO_STAGING_BACKGROUND:-0}" == "1" ]]; then
     return 0
   fi
   /usr/bin/osascript - "$title" "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
@@ -52,7 +52,7 @@ APPLESCRIPT
 show_notification() {
   local message="$1"
   log "NOTIFICATION: $message"
-  if [[ "${MANDO_STAGING_NO_UI:-0}" == "1" ]]; then
+  if [[ "${MANDO_STAGING_NO_UI:-0}" == "1" || "${MANDO_STAGING_BACKGROUND:-0}" == "1" ]]; then
     return 0
   fi
   /usr/bin/osascript - "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
@@ -164,6 +164,7 @@ ensure_supported_chrome() {
 }
 
 open_chrome() {
+  [[ "${MANDO_STAGING_BACKGROUND:-0}" == "1" ]] && return 0
   log "Opening Chrome by bundle identifier"
   if ! /usr/bin/open -b "$CHROME_BUNDLE_ID"; then
     fail "Google Chrome was not found" "Install Google Chrome, then open Mando Chrome again."

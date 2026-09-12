@@ -1,15 +1,16 @@
 {
-  "package_version": "1.0.7",
-  "generated_at": "2026-08-17",
+  "package_version": "1.1.0",
+  "generated_at": "2026-09-12",
   "repository": "MandoHQ/app",
   "branch": "develop",
   "artifact_path": "extension/dist-staging.zip",
-  "artifact_sha_observed_during_build": "d327a8cb0b9cd49574b77d3042b893be2435c987",
-  "artifact_size_observed_during_build": 1531908,
+  "artifact_sha_observed_during_build": "6469aed5691fbf8fa64b0cb7c134a53111f9120e",
+  "artifact_size_observed_during_build": 1464554,
   "launcher_name": "Mando Chrome.app",
   "fix": "Use local GitHub CLI credential discovery and curl-based binary transfer so API outages are not misreported as missing authentication and gh 2.87.2 cannot corrupt the staging ZIP download.",
   "icon": "4096px pearl-white macOS tile with bold 3D champagne-gold Mando rings and a centered dimensional Chrome core, plus a generated macOS ICNS icon set.",
   "network_retry": "Retry transient GitHub download failures four times before preserving the existing extension and reporting failure.",
   "chrome_compatibility": "Require regular Google Chrome 116 or newer before checking or launching, matching runtime.getContexts and sidePanel.open availability.",
-  "installer_signing": "Clean extracted macOS metadata, then sign and verify the temporary app before replacing the installed copy."
+  "installer_signing": "Clean extracted macOS metadata, then sign and verify the temporary app before replacing the installed copy.",
+  "status_monitor": "Per-user LaunchAgent checks every 120 seconds; updates only when Chrome is closed; reports minimal version/status telemetry to a private per-device dashboard."
 }

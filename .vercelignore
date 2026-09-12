@@ -1,0 +1,7 @@
+.git
+node_modules
+Mando Chrome.app
+tests
+*.zip
+.env*
+work

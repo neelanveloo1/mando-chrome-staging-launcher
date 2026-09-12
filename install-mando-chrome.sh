@@ -74,6 +74,16 @@ fi
 /bin/mv -- "$TEMP_APP" "$DEST_APP"
 TEMP_APP=""
 
+# Install the per-user monitor: no administrator privileges or browser restart.
+MONITOR_PLIST="$HOME/Library/LaunchAgents/work.mando.chrome.monitor.plist"
+/bin/mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs/MandoChrome"
+/usr/bin/osascript -l JavaScript "$SCRIPT_DIR/scripts/install-monitor.js" "$MONITOR_PLIST"
+/usr/bin/plutil -lint "$MONITOR_PLIST"
+/bin/launchctl bootout "gui/$(/usr/bin/id -u)" "$MONITOR_PLIST" >/dev/null 2>&1 || true
+/bin/launchctl bootstrap "gui/$(/usr/bin/id -u)" "$MONITOR_PLIST"
+/bin/cp "$SCRIPT_DIR/Open Mando Status.command" "$DEST_DIR/Open Mando Status.command"
+/bin/chmod +x "$DEST_DIR/Open Mando Status.command"
+
 /bin/echo
 /bin/echo "Installed: $DEST_APP"
 /bin/echo
@@ -100,5 +110,7 @@ fi
 /bin/echo "2. Open $DEST_APP."
 /bin/echo "3. In chrome://extensions, load unpacked from $HOME/Mando/StagingExtension once."
 /bin/echo "4. Drag Mando Chrome from $DEST_DIR into the Dock."
+/bin/echo "5. Open $DEST_DIR/Open Mando Status.command to view your Mac's live status."
+/bin/echo "The background monitor checks GitHub every two minutes and updates while Chrome is closed."
 /bin/echo
 /usr/bin/open -R "$DEST_APP" >/dev/null 2>&1 || true

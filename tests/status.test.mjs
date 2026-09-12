@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {cleanReport,hash,isToken} from '../lib/status.mjs';import {assess} from '../web/status.mjs';
+const now=Date.now();const fresh={receivedAt:new Date(now).toISOString(),check:'ok',latestSha:'a'.repeat(40),installedSha:'a'.repeat(40),registered:true,chromeRunning:true,extensionVersion:'1.86.0'};
+test('older saved Chrome version is not claimed as confirmed current',()=>{assert.equal(assess({...fresh,recordedVersion:'1.85.0'},now).tone,'warn');assert.equal(assess({...fresh,extensionVersion:null},now).tone,'warn');});
+test('green requires recent successful remote SHA and registration',()=>{assert.equal(assess(fresh,now).tone,'good');for(const change of [{latestSha:null},{registered:false},{disabled:true},{installedSha:'b'.repeat(40)}])assert.equal(assess({...fresh,...change},now).tone,'warn');});
+test('stale heartbeat and failed remote checks cannot stay green',()=>{assert.equal(assess(fresh,now+301000).tone,'neutral');assert.equal(assess({...fresh,check:'github_error'},now).tone,'bad');});
+test('server strips unapproved fields and timestamps report on receipt',()=>{const v=cleanReport({...fresh,secret:'do not store',receivedAt:'2099-01-01',chromeVersion:'bad'},now);assert.equal(v.secret,undefined);assert.equal(v.receivedAt,new Date(now).toISOString());assert.equal(v.chromeVersion,null);});
+test('read capability cannot write the same record',()=>{const write='a'.repeat(64),read=hash(write);assert.ok(isToken(read));assert.notEqual(hash(read),hash(hash(read)));assert.equal(hash(hash(write)),hash(read));assert.ok(!isToken('../escape'));});
