@@ -94,8 +94,8 @@ your local Chrome installation or authenticate to Mando's private repository.
 
 - Green: recent successful GitHub check, matching artifact SHAs, and the staging
   extension is registered in Chrome's last-used saved profile.
-- Amber: an update is waiting, Chrome setup is required, or its saved extension
-  version differs from the files on disk.
+- Amber: an update is waiting or Chrome setup is required. A lagging saved
+  service-worker version alone does not mean the installed build is out of date.
 - Red: GitHub authentication, network, compatibility, update, or status service error.
 - Offline/unconfirmed: no new report for more than five minutes, including sleep.
 
