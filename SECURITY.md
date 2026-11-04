@@ -8,7 +8,7 @@ GitHub authorization is enforced on every artifact fetch. Credentials stay on th
 
 The status adapter is limited to https://mando-chrome-status.vercel.app. Its background listener checks the sender's extension ID, top-level frame, exact origin, request type, and nonce. It exposes no generic browser, shell, URL-fetch, filesystem or token API.
 
-The native host accepts only the staging extension ID and a bounded, length-prefixed JSON message containing exactly {"action":"status"}. It runs one fixed local command that checks one fixed GitHub artifact. It returns check state, latest SHA, and timestamp only. It cannot install, execute user-supplied commands, or disclose credentials.
+The native host accepts only the staging extension ID and a bounded, length-prefixed JSON message containing exactly {"action":"status"}. It runs one fixed local command that reads the latest GitHub releases of one fixed repository. It returns check state, latest SHA, and timestamp only. It cannot install, execute user-supplied commands, or disclose credentials.
 
 The running worker's original artifact SHA is baked into the adapter at install time after upstream ZIP verification. It cannot turn green merely because a newer file was downloaded while an old worker is running. The page expires checks after 45 seconds. The frontend and installed adapter remain trusted software; this is not tamper-resistant remote attestation or a test of Mando recording/backend behavior.
 

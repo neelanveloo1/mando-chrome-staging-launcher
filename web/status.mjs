@@ -6,7 +6,7 @@ export function assess(r, now = Date.now()) {
       detail:
         'Open this page in Google Chrome with Mando staging enabled. After installing Mando Chrome 1.2.0, quit Chrome and reopen it using the gold Mando icon.',
     };
-  if (r.protocol !== 2 || !/^[a-f0-9]{40}$/.test(r.runningSha || '') || !r.runningVersion)
+  if (r.protocol !== 2 || !/^[a-f0-9]{64}$/.test(r.runningSha || '') || !r.runningVersion)
     return {
       tone: 'bad',
       title: 'No live extension response',
@@ -28,7 +28,7 @@ export function assess(r, now = Date.now()) {
           ? 'Sign in on your Mac with gh auth login. Your account needs access to MandoHQ/app.'
           : 'GitHub or the local checker did not respond successfully. Your existing extension is unchanged. Try Check now.',
     };
-  if (!/^[a-f0-9]{40}$/.test(r.latestSha || ''))
+  if (!/^[a-f0-9]{64}$/.test(r.latestSha || ''))
     return {
       tone: 'bad',
       title: 'Latest build not verified',

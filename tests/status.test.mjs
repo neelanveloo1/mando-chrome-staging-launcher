@@ -6,8 +6,8 @@ const now = Date.now(),
     protocol: 2,
     checkedAt: new Date(now).toISOString(),
     check: 'ok',
-    latestSha: 'a'.repeat(40),
-    runningSha: 'a'.repeat(40),
+    latestSha: 'a'.repeat(64),
+    runningSha: 'a'.repeat(64),
     runningVersion: '1.86.0',
     chromeVersion: '152.0.7977.84',
   };
@@ -22,7 +22,7 @@ test('installed files or saved registration can never substitute for live respon
 });
 test('outdated running build is red even when installed files are current', () => {
   assert.equal(
-    assess({ ...fresh, runningSha: 'b'.repeat(40), installedSha: fresh.latestSha }, now).title,
+    assess({ ...fresh, runningSha: 'b'.repeat(64), installedSha: fresh.latestSha }, now).title,
     'Update needed',
   );
 });

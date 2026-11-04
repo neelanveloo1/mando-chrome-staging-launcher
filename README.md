@@ -51,6 +51,8 @@ Install the latest ZIP over your existing launcher, quit Chrome with **⌘Q**, a
 
 Your extension data stays in place. Old private status links from version 1.1.0 are no longer needed.
 
+**Stuck on staging 1.93.1?** Launchers before 1.2.2 read a zip committed to the `develop` branch, which the extension team stopped updating when releases moved to GitHub Releases. Install 1.2.2 or newer: it follows the newest `Extension <version> (develop)` release instead, and the first launch after installing it pulls the current build.
+
 ## What updates automatically?
 
 - **Staging:** checked before the launcher opens Chrome. It also updates in the background every two minutes **while Chrome is closed**.

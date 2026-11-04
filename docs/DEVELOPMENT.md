@@ -24,7 +24,7 @@ The package is written to `work/Mando-Chrome-Team-Installer.zip`. Packaging star
 | `Mando Chrome.app/Contents/Resources/launcher.sh` | Resolve Chrome/GitHub, verify downloads, install transactionally, open Chrome. |
 | `prepare-bridge.js`                               | Add the narrow live-status adapter to a verified candidate.                    |
 | `bridge-content.js` / `bridge-worker.js`          | Dashboard request → running staging worker → live response.                    |
-| `native-host.js` / `live-status.sh`               | Bounded native messaging and a fixed, read-only GitHub query.                  |
+| `native-host.js` / `live-status.sh`               | Bounded native messaging and a fixed, read-only GitHub releases query.         |
 | `monitor.sh`                                      | Background updates only while Chrome is closed.                                |
 | `web/`                                            | Plain HTML/CSS/JavaScript dashboard, with a separately tested status decision. |
 | `scripts/`                                        | Build, packaging, and per-user installer configuration.                        |
@@ -36,7 +36,13 @@ There are no production JavaScript package dependencies. macOS built-in Bash, Ja
 
 The dashboard communicates only with the current profile’s staging extension. The content script is limited to the exact dashboard origin. The worker validates the sender’s extension ID, origin, top-level frame, request type, and nonce.
 
-The running worker reports its manifest version and an **upstream artifact SHA baked into its module**. It never substitutes an on-disk version marker for running identity. Its read-only native host queries the latest GitHub artifact through the user’s locally stored credential.
+The running worker reports its manifest version and an **upstream artifact SHA baked into its module**. It never substitutes an on-disk version marker for running identity. Its read-only native host queries the latest GitHub release through the user’s locally stored credential.
+
+## Where the staging build comes from
+
+CI in `MandoHQ/app` (see its `extension/RELEASING.md`) turns every push to `develop` into a GitHub Release tagged `ext/v<version>` and named `Extension <version> (develop)`, with every flavour’s zip attached. The launcher lists the newest releases, takes the newest non-draft one with that tag prefix and label that has `dist-staging.zip` attached, and uses the asset’s `digest` (`sha256:…`, published by GitHub for every asset) as the build identity. Rollback builds (`(rollback)`), listing branches (`(main)`, `(partner-…)`) and a release whose assets are still uploading are skipped. The asset is downloaded through the releases asset endpoint with `Accept: application/octet-stream`.
+
+The zip committed at `extension/dist-staging.zip` is a leftover of the old hand-built process and is no longer refreshed; nothing here reads it.
 
 A result expires after 45 seconds. A missing response, failed GitHub request, invalid build ID, unsupported Chrome, or running/latest mismatch cannot produce green. The worker coalesces concurrent requests and reuses a result for at most five seconds.
 
@@ -44,7 +50,7 @@ The page checks every 15 seconds while visible. A live GitHub request has a 10-s
 
 ## Safe installation
 
-The updater verifies the upstream ZIP’s expected size, Git blob SHA, integrity, safe paths, absence of symlinks, Manifest V3, staging name, and stable key. Only then does it add the adapter to the isolated candidate.
+The updater verifies the upstream ZIP’s expected size, sha256 digest, integrity, safe paths, absence of symlinks, Manifest V3, staging name, and stable key. Only then does it add the adapter to the isolated candidate.
 
 The adapter adds nativeMessaging permission, a dashboard-only content script, and a distinct background entry point. Upstream source files are not rewritten; manifest additions and adapter files are explicit. This local adapter is not part of the upstream ZIP.
 
