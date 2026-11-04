@@ -64,7 +64,7 @@ Files are replaced transactionally only while Chrome is closed, with a prior-ver
 2. Increment the adapter revision if required.
 3. Run all checks above and verify the live page in Chrome.
 4. Commit and push to `main`; confirm macOS CI and Vercel succeed.
-5. Tag the same commit and publish a GitHub release with asset name **Mando-Chrome-Team-Installer.zip**.
+5. Tag the same commit `v<version>` (it must match `package.json`) and push the tag. CI builds the installer on macOS and publishes the GitHub release with asset name **Mando-Chrome-Team-Installer.zip**.
 6. Verify the public latest-release download. Do not replace a published release silently.
 
 The installer signs and verifies a temporary app before replacing the installed app. Source bundles are unsigned; shipped installers do not contain stale source signatures.

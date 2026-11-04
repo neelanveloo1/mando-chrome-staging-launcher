@@ -25,3 +25,38 @@ jobs:
         with:
           name: mac-installer
           path: work/Mando-Chrome-Team-Installer.zip
+
+  # A v<version> tag publishes the installer that the test job just built and
+  # verified on macOS, under the asset name the README's download link expects.
+  # The tag has to match package.json, so a stale version can't ship by accident.
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac-installer
+          path: work
+      - name: Publish release
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version=$(node -p "require('./package.json').version")
+          [ "$tag" = "v$version" ] || { echo "::error::Tag $tag does not match package.json version $version"; exit 1; }
+          unzip -tq work/Mando-Chrome-Team-Installer.zip
+          notes=$(mktemp)
+          {
+            echo "## Mando Chrome $version"
+            echo
+            echo "Download **Mando-Chrome-Team-Installer.zip**, unzip it, double-click **Install Mando Chrome.command**, quit Chrome with ⌘Q, then open Mando Chrome once."
+            echo
+            echo "What changed: see \`BUILD_INFO.json\` in the installer and the commits since the previous tag."
+          } > "$notes"
+          gh release create "$tag" --target "$GITHUB_SHA" --title "Mando Chrome $version" \
+            --notes-file "$notes" --latest work/Mando-Chrome-Team-Installer.zip
