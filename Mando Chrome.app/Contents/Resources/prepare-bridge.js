@@ -1,7 +1,7 @@
 ObjC.import('Foundation');
 function run(argv) {
   const [root, resources, sha] = argv;
-  if (!/^[a-f0-9]{40}$/.test(sha)) throw Error('Invalid artifact SHA');
+  if (!/^[a-f0-9]{64}$/.test(sha)) throw Error('Invalid artifact SHA');
   const read = (p) =>
     ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null));
   const write = (p, s) => {

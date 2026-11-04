@@ -52,7 +52,7 @@ test('a completed request cannot cancel the next request on a late disconnect', 
 test('live worker reports baked-in identity and restricts the caller', async () => {
   let connect,
     nativeCalls = 0;
-  const sha = 'c'.repeat(40);
+  const sha = 'c'.repeat(64);
   const context = {
     URL,
     Date,

@@ -5,9 +5,16 @@ umask 022
 
 readonly APP_NAME="Mando Chrome"
 readonly REPOSITORY="MandoHQ/app"
-readonly BRANCH="develop"
-readonly ARTIFACT_PATH="extension/dist-staging.zip"
-readonly CONTENTS_ENDPOINT="repos/${REPOSITORY}/contents/${ARTIFACT_PATH}?ref=${BRANCH}"
+# CI in MandoHQ/app (extension/RELEASING.md) turns every push to develop into a
+# GitHub Release named "Extension <version> (develop)", tagged ext/v<version>,
+# with dist-staging.zip attached. The asset's sha256 digest, published by GitHub
+# alongside the asset, is the build identity used everywhere below.
+readonly RELEASE_LABEL="develop"
+readonly RELEASE_TAG_PREFIX="ext/v"
+readonly ASSET_NAME="dist-staging.zip"
+readonly MAX_RELEASES=30
+readonly RELEASES_ENDPOINT="repos/${REPOSITORY}/releases?per_page=${MAX_RELEASES}"
+readonly ASSETS_ENDPOINT="repos/${REPOSITORY}/releases/assets"
 readonly EXTENSION_DIR="$HOME/Mando/StagingExtension"
 readonly PREVIOUS_DIR="$HOME/Mando/StagingExtension.previous"
 readonly TRANSACTION_BACKUP="$HOME/Mando/.StagingExtension.transaction-backup"
@@ -22,6 +29,7 @@ readonly STALE_MESSAGE="Mando Chrome has been updated. Close Chrome when conveni
 readonly AUTH_MESSAGE="Mando Chrome cannot read the private staging build. Sign in with GitHub CLI, or store a read-only token in macOS Keychain."
 readonly VERIFY_MESSAGE="Mando Chrome could not verify the latest build. Existing extension files were left untouched."
 readonly DOWNLOAD_MESSAGE="GitHub did not finish the staging download after several automatic retries. Existing extension files were left untouched. Close Chrome and try Mando Chrome again in a minute."
+readonly NO_RELEASE_MESSAGE="GitHub has no staging release that Mando Chrome recognises. Existing extension files were left untouched. Ask the extension team whether the release pipeline changed."
 readonly CHROME_BUNDLE_ID="com.google.Chrome"
 readonly MINIMUM_CHROME_MAJOR=116
 readonly RESOURCE_DIR_LAUNCHER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,6 +39,12 @@ LOCK_HELD=0
 GITHUB_MODE=""
 GH_BIN=""
 GITHUB_TOKEN=""
+# Set by select_staging_release from the GitHub Releases response.
+REMOTE_TAG=""
+REMOTE_VERSION=""
+REMOTE_ASSET_ID=""
+REMOTE_SIZE=""
+REMOTE_SHA=""
 
 log() {
   /bin/echo "$(/bin/date -u '+%Y-%m-%dT%H:%M:%SZ') $*"
@@ -252,34 +266,25 @@ curl_github_to_file() {
     --output "$destination"
 }
 
+# The newest releases of MandoHQ/app, newest first. Each carries its assets
+# with GitHub's own sha256 digest for every file.
 fetch_metadata() {
   local destination="$1"
-  if [[ "$GITHUB_MODE" == "gh" ]]; then
-    "$GH_BIN" api \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$CONTENTS_ENDPOINT" > "$destination"
-  else
-    curl_github_to_file \
-      "application/vnd.github+json" \
-      "https://api.github.com/${CONTENTS_ENDPOINT}" \
-      "$destination"
-  fi
+  curl_github_to_file \
+    "application/vnd.github+json" \
+    "https://api.github.com/${RELEASES_ENDPOINT}" \
+    "$destination"
 }
 
+# The asset endpoint answers with a redirect to GitHub's download host; curl
+# follows it and, because the host changes, drops the Authorization header
+# on the way, which is what that host expects.
 fetch_artifact() {
   local destination="$1"
-  if [[ "$GITHUB_MODE" == "gh" ]]; then
-    "$GH_BIN" api \
-      -H "Accept: application/vnd.github.raw+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$CONTENTS_ENDPOINT" > "$destination"
-  else
-    curl_github_to_file \
-      "application/vnd.github.raw+json" \
-      "https://api.github.com/${CONTENTS_ENDPOINT}" \
-      "$destination"
-  fi
+  curl_github_to_file \
+    "application/octet-stream" \
+    "https://api.github.com/${ASSETS_ENDPOINT}/${REMOTE_ASSET_ID}" \
+    "$destination"
 }
 
 plist_extract() {
@@ -288,18 +293,56 @@ plist_extract() {
   /usr/bin/plutil -extract "$key" raw -o - "$file" 2>/dev/null
 }
 
+# Pick the staging build from a releases response: the newest non-draft
+# release whose tag starts with ext/v, whose name ends in "(develop)" and
+# which has dist-staging.zip attached with a sha256 digest. Rollback builds
+# ("(rollback)") and listing branches (main, partner-*) are skipped, and a
+# release whose assets are still uploading falls through to the one before.
+select_staging_release() {
+  local metadata="$1"
+  local index asset_index tag name draft asset_name digest
+
+  REMOTE_TAG=""
+  REMOTE_VERSION=""
+  REMOTE_ASSET_ID=""
+  REMOTE_SIZE=""
+  REMOTE_SHA=""
+
+  for (( index = 0; index < MAX_RELEASES; index++ )); do
+    tag="$(plist_extract "$index.tag_name" "$metadata" || true)"
+    [[ -n "$tag" ]] || break
+    name="$(plist_extract "$index.name" "$metadata" || true)"
+    draft="$(plist_extract "$index.draft" "$metadata" || true)"
+    [[ "$tag" == "$RELEASE_TAG_PREFIX"* ]] || continue
+    [[ "$name" == *"($RELEASE_LABEL)" ]] || continue
+    [[ "$draft" != "true" ]] || continue
+
+    for (( asset_index = 0; asset_index < 64; asset_index++ )); do
+      asset_name="$(plist_extract "$index.assets.$asset_index.name" "$metadata" || true)"
+      [[ -n "$asset_name" ]] || break
+      [[ "$asset_name" == "$ASSET_NAME" ]] || continue
+      digest="$(plist_extract "$index.assets.$asset_index.digest" "$metadata" || true)"
+      REMOTE_TAG="$tag"
+      REMOTE_VERSION="${tag#"$RELEASE_TAG_PREFIX"}"
+      REMOTE_ASSET_ID="$(plist_extract "$index.assets.$asset_index.id" "$metadata" || true)"
+      REMOTE_SIZE="$(plist_extract "$index.assets.$asset_index.size" "$metadata" || true)"
+      REMOTE_SHA="${digest#sha256:}"
+      break 2
+    done
+  done
+
+  [[ "$REMOTE_SHA" =~ ^[0-9a-f]{64}$ ]] || return 1
+  [[ "$REMOTE_ASSET_ID" =~ ^[0-9]+$ ]] || return 1
+  [[ "$REMOTE_SIZE" =~ ^[0-9]+$ ]] || return 1
+  return 0
+}
+
 file_size() {
   /usr/bin/stat -f '%z' "$1"
 }
 
-compute_git_blob_sha() {
-  local file="$1"
-  local size
-  size="$(file_size "$file")"
-  {
-    printf 'blob %s\0' "$size"
-    /bin/cat "$file"
-  } | /usr/bin/shasum -a 1 | /usr/bin/awk '{print $1}'
+compute_sha256() {
+  /usr/bin/shasum -a 256 "$1" | /usr/bin/awk '{print $1}'
 }
 
 bridge_is_current() {
@@ -394,12 +437,16 @@ find_extension_root() {
 write_artifact_metadata() {
   local root="$1"
   local artifact_sha="$2"
+  local release_tag="${3:-}"
+  local version="${4:-}"
   local installed_at
   installed_at=$(/bin/date -u '+%Y-%m-%dT%H:%M:%SZ')
 
   /bin/cat > "$root/$METADATA_FILENAME" <<JSON
 {
   "artifact_sha": "$artifact_sha",
+  "release_tag": "$release_tag",
+  "version": "$version",
   "installed_at": "$installed_at"
 }
 JSON
@@ -426,7 +473,7 @@ recover_interrupted_install() {
 
   local recovered_sha
   recovered_sha="$(read_installed_sha || true)"
-  if validate_manifest "$EXTENSION_DIR" && [[ "$recovered_sha" =~ ^[0-9a-f]{40}$ ]]; then
+  if validate_manifest "$EXTENSION_DIR" && [[ "$recovered_sha" =~ ^[0-9a-f]{64}$ ]]; then
     /bin/rm -rf -- "$PREVIOUS_DIR"
     /bin/mv -- "$TRANSACTION_BACKUP" "$PREVIOUS_DIR"
     return 0
@@ -517,12 +564,11 @@ main() {
     fail_update_and_open_chrome "Unable to check for a staging update" "$VERIFY_MESSAGE"
   fi
 
-  remote_sha="$(plist_extract "sha" "$metadata_file" || true)"
-  remote_size="$(plist_extract "size" "$metadata_file" || true)"
-
-  if [[ ! "$remote_sha" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$remote_size" =~ ^[0-9]+$ ]]; then
-    fail_update_and_open_chrome "Invalid GitHub response" "$VERIFY_MESSAGE" "GitHub metadata did not contain a valid blob SHA and size"
+  if ! select_staging_release "$metadata_file"; then
+    fail_update_and_open_chrome "No staging release found" "$NO_RELEASE_MESSAGE" "None of the latest $MAX_RELEASES releases of $REPOSITORY is a non-draft ${RELEASE_TAG_PREFIX}* release labelled ($RELEASE_LABEL) with $ASSET_NAME and a sha256 digest"
   fi
+  remote_sha="$REMOTE_SHA"
+  remote_size="$REMOTE_SIZE"
 
   installed_sha="$(read_installed_sha || true)"
   chrome_was_running=0
@@ -530,7 +576,7 @@ main() {
     chrome_was_running=1
   fi
 
-  log "Installed SHA: ${installed_sha:-none}; required SHA: $remote_sha; Chrome running: $chrome_was_running"
+  log "Installed SHA: ${installed_sha:-none}; latest release: $REMOTE_TAG (asset $REMOTE_ASSET_ID, sha256 $remote_sha); Chrome running: $chrome_was_running"
 
   if [[ "$installed_sha" == "$remote_sha" ]] && bridge_is_current; then
     open_chrome
@@ -543,8 +589,8 @@ main() {
     exit 0
   fi
 
-  show_notification "Installing the latest staging extension"
-  zip_file="$WORK_ROOT/dist-staging.zip"
+  show_notification "Installing staging extension $REMOTE_VERSION"
+  zip_file="$WORK_ROOT/$ASSET_NAME"
 
   if ! fetch_artifact "$zip_file"; then
     fail_update_and_open_chrome "Update download failed" "$DOWNLOAD_MESSAGE"
@@ -555,9 +601,9 @@ main() {
     fail_update_and_open_chrome "Incomplete staging download" "$VERIFY_MESSAGE" "Expected $remote_size bytes, received $actual_size"
   fi
 
-  computed_sha="$(compute_git_blob_sha "$zip_file")"
+  computed_sha="$(compute_sha256 "$zip_file")"
   if [[ "$computed_sha" != "$remote_sha" ]]; then
-    fail_update_and_open_chrome "Staging verification failed" "$VERIFY_MESSAGE" "Expected Git blob SHA $remote_sha, computed $computed_sha"
+    fail_update_and_open_chrome "Staging verification failed" "$VERIFY_MESSAGE" "Expected sha256 $remote_sha, computed $computed_sha"
   fi
 
   if ! /usr/bin/unzip -tq "$zip_file" >/dev/null; then
@@ -583,7 +629,7 @@ main() {
     fail_update_and_open_chrome "Wrong staging extension" "$VERIFY_MESSAGE" "ZIP did not contain exactly one valid Mando staging extension root"
   fi
 
-  write_artifact_metadata "$candidate" "$remote_sha"
+  write_artifact_metadata "$candidate" "$remote_sha" "$REMOTE_TAG" "$REMOTE_VERSION"
 
   # Add the adapter only to the verified candidate, never the running extension.
   if ! /usr/bin/osascript -l JavaScript "$RESOURCE_DIR_LAUNCHER/prepare-bridge.js" "$candidate" "$RESOURCE_DIR_LAUNCHER" "$remote_sha"; then
@@ -600,8 +646,8 @@ main() {
     fail_update_and_open_chrome "Staging installation failed" "$VERIFY_MESSAGE" "Transactional install failed and prior files were restored"
   fi
 
-  log "Installed staging artifact $remote_sha"
-  show_notification "Mando Chrome is current"
+  log "Installed staging release $REMOTE_TAG ($remote_sha)"
+  show_notification "Mando Chrome is current: staging $REMOTE_VERSION"
   open_chrome
 }
 

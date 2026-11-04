@@ -70,12 +70,49 @@ configure_github_auth
 [[ "$GITHUB_MODE" == "token" ]]
 [[ "$GITHUB_TOKEN" == "test-token" ]]
 
-if command -v git >/dev/null 2>&1; then
-  EXPECTED="$(git hash-object "$TMP_DIR/blob")"
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    ACTUAL="$(compute_git_blob_sha "$TMP_DIR/blob")"
-    [[ "$ACTUAL" == "$EXPECTED" ]]
-  fi
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  EXPECTED="$(/usr/bin/shasum -a 256 "$TMP_DIR/blob" | /usr/bin/awk '{print $1}')"
+  ACTUAL="$(compute_sha256 "$TMP_DIR/blob")"
+  [[ "$ACTUAL" == "$EXPECTED" ]]
+  [[ "$ACTUAL" =~ ^[0-9a-f]{64}$ ]]
+
+  # Release selection: skip rollback builds, drafts, listing branches and a
+  # develop release still missing its zip; take the newest complete develop one.
+  GOOD_SHA="$(printf '%064d' 7)"
+  cat > "$TMP_DIR/releases.json" <<RELEASES
+[
+  {"tag_name": "ext/v1.93.120", "name": "Extension 1.93.120 (rollback)", "draft": false,
+   "assets": [{"name": "dist-staging.zip", "id": 1, "size": 10, "digest": "sha256:$(printf '%064d' 1)"}]},
+  {"tag_name": "ext/v1.93.119", "name": "Extension 1.93.119 (develop)", "draft": true,
+   "assets": [{"name": "dist-staging.zip", "id": 2, "size": 10, "digest": "sha256:$(printf '%064d' 2)"}]},
+  {"tag_name": "ext/v1.93.118", "name": "Extension 1.93.118 (main)", "draft": false,
+   "assets": [{"name": "dist-staging.zip", "id": 3, "size": 10, "digest": "sha256:$(printf '%064d' 3)"}]},
+  {"tag_name": "ext/v1.93.117", "name": "Extension 1.93.117 (develop)", "draft": false,
+   "assets": [{"name": "SHA256SUMS", "id": 4, "size": 10, "digest": "sha256:$(printf '%064d' 4)"}]},
+  {"tag_name": "v9.9.9", "name": "Launcher 9.9.9 (develop)", "draft": false,
+   "assets": [{"name": "dist-staging.zip", "id": 5, "size": 10, "digest": "sha256:$(printf '%064d' 5)"}]},
+  {"tag_name": "ext/v1.93.116", "name": "Extension 1.93.116 (develop)", "draft": false,
+   "assets": [{"name": "dist-prod.zip", "id": 6, "size": 11, "digest": "sha256:$(printf '%064d' 6)"},
+              {"name": "dist-staging.zip", "id": 7, "size": 2160505, "digest": "sha256:$GOOD_SHA"}]},
+  {"tag_name": "ext/v1.93.115", "name": "Extension 1.93.115 (develop)", "draft": false,
+   "assets": [{"name": "dist-staging.zip", "id": 8, "size": 10, "digest": "sha256:$(printf '%064d' 8)"}]}
+]
+RELEASES
+  select_staging_release "$TMP_DIR/releases.json"
+  [[ "$REMOTE_TAG" == "ext/v1.93.116" ]]
+  [[ "$REMOTE_VERSION" == "1.93.116" ]]
+  [[ "$REMOTE_ASSET_ID" == "7" ]]
+  [[ "$REMOTE_SIZE" == "2160505" ]]
+  [[ "$REMOTE_SHA" == "$GOOD_SHA" ]]
+
+  # No usable release at all must fail rather than install anything.
+  printf '[{"tag_name": "ext/v1.0.0", "name": "Extension 1.0.0 (main)", "draft": false, "assets": []}]' > "$TMP_DIR/none.json"
+  ! select_staging_release "$TMP_DIR/none.json"
+  [[ -z "$REMOTE_SHA" ]]
+
+  # A digest that is not sha256 is not an identity.
+  printf '[{"tag_name": "ext/v1.0.0", "name": "Extension 1.0.0 (develop)", "draft": false, "assets": [{"name": "dist-staging.zip", "id": 9, "size": 10, "digest": "md5:abc"}]}]' > "$TMP_DIR/bad.json"
+  ! select_staging_release "$TMP_DIR/bad.json"
 fi
 
 validate_zip_entry 'dist-staging/manifest.json'

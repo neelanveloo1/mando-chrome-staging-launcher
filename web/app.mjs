@@ -31,7 +31,7 @@ function paint() {
   $('refresh').disabled = !!active;
   $('version').textContent = report?.runningVersion ? 'v' + report.runningVersion : '—';
   $('chrome').textContent = report?.chromeVersion || '—';
-  const verified = report?.check === 'ok' && /^[a-f0-9]{40}$/.test(report.latestSha || '');
+  const verified = report?.check === 'ok' && /^[a-f0-9]{64}$/.test(report.latestSha || '');
   $('match').textContent = verified
     ? report.runningSha === report.latestSha
       ? 'Matches ✓'
